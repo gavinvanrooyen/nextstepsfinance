@@ -26,8 +26,9 @@ API access is ready.
 
 You've already created the Web application OAuth client. Now:
 
-1. In that OAuth client's settings, add this **exact** Authorized redirect URI:
-   `http://localhost:3000/oauth2callback`
+1. In that OAuth client's settings, add this **exact** Authorized redirect URI
+   (use the same value you set for `YOUTUBE_REDIRECT_URI`):
+   `http://localhost:<port>/oauth2callback`
 2. Copy `.env.example` to `.env` (this file is git-ignored, it stays on your machine only).
 3. Fill in `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET` from Google Cloud Console.
 4. Run:
@@ -74,7 +75,7 @@ This project has no separate "build" step — it's just Netlify Functions.
 npm install -g netlify-cli
 netlify login
 netlify init
-netlify env:set SANITY_PROJECT_ID udes06w8
+netlify env:set SANITY_PROJECT_ID your-sanity-project-id
 # ...repeat env:set for each variable, or add them in the Netlify UI instead
 netlify deploy --prod
 ```
