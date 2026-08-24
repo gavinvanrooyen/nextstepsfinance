@@ -1,6 +1,9 @@
 [build]
   functions = "netlify/functions"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_PATHS = "node_modules"
+
 [functions."scheduled-post"]
   # Runs once a day. Cron is UTC. 07:00 UTC = 07:00/08:00 UK time depending on DST.
   # Change this once we agree on the exact time you want the daily run to fire.
