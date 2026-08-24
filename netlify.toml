@@ -1,7 +1,15 @@
 [build]
+  publish = "public"
   functions = "netlify/functions"
 
 [functions."scheduled-post"]
   # Runs once a day. Cron is UTC. 07:00 UTC = 07:00/08:00 UK time depending on DST.
   # Change this once we agree on the exact time you want the daily run to fire.
   schedule = "0 7 * * *"
+
+# Clean URLs for the dashboard's fetch calls: /api/list-content instead of
+# /.netlify/functions/list-content
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
