@@ -9,6 +9,7 @@ const planState = {
 };
 
 const STATUS_LABELS = {
+  idea: 'Idea',
   scripted: 'Scripted',
   filmed: 'Filmed',
   edited: 'Edited',
@@ -16,7 +17,7 @@ const STATUS_LABELS = {
   published: 'Published',
 };
 
-const STATUS_ORDER = ['scripted', 'filmed', 'edited', 'ready', 'published'];
+const STATUS_ORDER = ['idea', 'scripted', 'filmed', 'edited', 'ready', 'published'];
 
 const PILLAR_LABELS = {
   foundations: 'Foundations',
@@ -36,14 +37,20 @@ document.querySelectorAll('.section-tab').forEach((tab) => {
     document.querySelectorAll('.section-tab').forEach((t) => t.classList.remove('is-active'));
     tab.classList.add('is-active');
 
-    const isPlan = tab.dataset.section === 'plan';
-    document.getElementById('section-plan').hidden = !isPlan;
-    document.getElementById('section-review').hidden = isPlan;
-    document.getElementById('plan-tabs').hidden = !isPlan;
-    document.getElementById('review-tabs').hidden = isPlan;
+    const section = tab.dataset.section; // "plan" | "ideas" | "review"
 
-    if (isPlan && planState.topics.length === 0) loadPlan();
-    if (!isPlan && window.__reviewLoaded !== true) {
+    document.getElementById('section-plan').hidden = section !== 'plan';
+    document.getElementById('section-ideas').hidden = section !== 'ideas';
+    document.getElementById('section-review').hidden = section !== 'review';
+    document.getElementById('plan-tabs').hidden = section !== 'plan';
+    document.getElementById('review-tabs').hidden = section !== 'review';
+
+    if (section === 'plan' && planState.topics.length === 0) loadPlan();
+    if (section === 'ideas' && typeof initIdeasForm === 'function' && window.__ideasLoaded !== true) {
+      window.__ideasLoaded = true;
+      initIdeasForm();
+    }
+    if (section === 'review' && window.__reviewLoaded !== true) {
       window.__reviewLoaded = true;
       loadContent();
     }
@@ -347,9 +354,23 @@ function buildEditPanel(item) {
     </div>
     <div class="edit-actions">
       <button class="btn btn-approve edit-save">Save changes</button>
+      <button class="btn btn-reset edit-claude">Draft script in Claude</button>
       <a href="${studioLink}" target="_blank" rel="noopener" class="btn btn-reset">Open in Sanity Studio</a>
     </div>
   `;
+
+  panel.querySelector('.edit-claude').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const prompt = buildClaudePrompt(item);
+    try {
+      await navigator.clipboard.writeText(prompt);
+      showPlanBanner('Prompt copied — paste it into the new Claude tab.', 'is-success');
+    } catch {
+      showPlanBanner('Could not copy automatically — opening Claude, paste the prompt from the console if needed.', 'is-error');
+      console.log(prompt);
+    }
+    window.open('https://claude.ai/new', '_blank', 'noopener');
+  });
 
   panel.querySelector('.edit-save').addEventListener('click', async (e) => {
     e.stopPropagation();
@@ -391,6 +412,37 @@ function buildEditPanel(item) {
   panel.addEventListener('click', (e) => e.stopPropagation());
 
   return panel;
+}
+
+function buildClaudePrompt(item) {
+  const isVideo = item._type === 'video';
+  const formatLine = isVideo
+    ? 'This is a long-form YouTube video (roughly 8-15 minutes).'
+    : 'This is a short-form video for TikTok/Instagram Reels/YouTube Shorts (30-60 seconds).';
+
+  const titleLine = isVideo ? `Title: ${item.title}` : `Hook (first 3 seconds): ${item.hook || item.title}`;
+  const topicLine = item.topicTitle ? `Topic: ${item.topicTitle}` : '';
+  const pillarLine = item.pillar ? `Content pillar: ${PILLAR_LABELS[item.pillar] || item.pillar}` : '';
+  const ctaLine = item.cta?.name ? `Include a call to action for: ${item.cta.name}` : 'No CTA needed for this one - keep it purely educational.';
+  const notesLine = item.notes ? `Notes / angle from the content plan: ${item.notes}` : '';
+
+  return [
+    `I'm writing a script/transcript for a UK personal finance education video for nextsteps.finance.`,
+    formatLine,
+    titleLine,
+    topicLine,
+    pillarLine,
+    `Audience: UK adults in their 20s-40s who want plain-English, practical personal finance guidance - no jargon, no assumed background knowledge.`,
+    `Tone: warm, direct, and credible - like a knowledgeable friend, not a lecture. Avoid hype and avoid anything that could read as regulated financial advice; frame things as general education.`,
+    ctaLine,
+    notesLine,
+    ``,
+    `Please write:`,
+    `1. A full spoken script/transcript for this video, written to be read aloud naturally.`,
+    `2. A suggested on-screen hook/opening line if different from the title.`,
+    `3. A short post caption (2-3 sentences) suitable for the video's description.`,
+    `4. 5-8 relevant hashtags.`,
+  ].filter(Boolean).join('\n');
 }
 
 function renderBulkBar() {

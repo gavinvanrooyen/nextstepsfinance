@@ -19,6 +19,7 @@
 
     <div class="section-tabs" role="tablist">
       <button class="section-tab is-active" data-section="plan">Content Plan</button>
+      <button class="section-tab" data-section="ideas">Add Ideas</button>
       <button class="section-tab" data-section="review">Posting Review</button>
     </div>
 
@@ -45,6 +46,15 @@
     <div id="plan-timeline" class="plan-timeline" hidden></div>
   </section>
 
+  <section id="section-ideas" hidden>
+    <p class="ideas-intro">Jot down new video ideas here. Each one gets added to the CMS as an <strong>Idea</strong> — the first stage before Scripted — so it shows up in the Content Plan ready to develop.</p>
+    <div id="idea-rows" class="idea-rows"></div>
+    <div class="idea-form-actions">
+      <button id="add-idea-row" class="btn btn-reset">+ Add another idea</button>
+      <button id="submit-ideas" class="btn btn-approve">Submit all ideas</button>
+    </div>
+  </section>
+
   <section id="section-review" hidden>
     <div id="empty-state" class="empty-state" hidden>
       <p class="empty-title">Nothing here yet</p>
@@ -55,6 +65,7 @@
 </main>
 
 <script src="/plan.js"></script>
+<script src="/ideas.js"></script>
 <script src="/dashboard.js"></script>
 </body>
 </html>
