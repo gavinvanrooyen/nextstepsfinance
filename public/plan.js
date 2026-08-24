@@ -283,10 +283,10 @@ function renderItemRow(item) {
   row.innerHTML = `
     <input type="checkbox" class="row-check" ${isSelected ? 'checked' : ''} />
     <span class="item-type type-${item._type}">${typeTag}</span>
-    <span class="item-label">${escapeHtmlPlan(label)}</span>
+    <span class="item-label" title="${escapeHtmlPlan(label)}">${escapeHtmlPlan(label)}</span>
+    <span class="spacer"></span>
     ${moneyMoves}
     ${ctaFlag}
-    <span class="spacer"></span>
     ${driveFlag}
     <span class="status-chip status-${item.productionStatus}">${STATUS_LABELS[item.productionStatus] || item.productionStatus}</span>
   `;
@@ -314,6 +314,15 @@ function renderItemRow(item) {
 
   return wrapper;
 }
+
+const PLATFORM_OPTIONS = [
+  { value: 'youtube', label: 'YouTube', defaultFor: ['video'] },
+  { value: 'youtube_shorts', label: 'YT Shorts', defaultFor: ['shortClip'] },
+  { value: 'instagram', label: 'Instagram', defaultFor: ['shortClip'] },
+  { value: 'tiktok', label: 'TikTok', defaultFor: ['shortClip'] },
+  { value: 'facebook', label: 'Facebook', defaultFor: [] },
+  { value: 'linkedin', label: 'LinkedIn', defaultFor: [] },
+];
 
 function buildEditPanel(item) {
   const panel = document.createElement('div');
@@ -352,6 +361,26 @@ function buildEditPanel(item) {
         ${planState.ctas.map((c) => `<option value="${c._id}" ${item.cta?._id === c._id ? 'selected' : ''}>${escapeHtmlPlan(c.name)}</option>`).join('')}
       </select>
     </div>
+    <div class="edit-row">
+      <label>Queue for posting</label>
+      <div class="platform-queue">
+        ${PLATFORM_OPTIONS.map((p) => {
+          const existing = (item.platformPosts || []).find((pp) => pp.platform === p.value);
+          if (existing) {
+            const label = existing.status === 'posted' ? 'Posted'
+              : existing.status === 'failed' ? 'Failed'
+              : existing.approvalStatus === 'approved' ? 'Approved'
+              : existing.approvalStatus === 'rejected' ? 'Rejected'
+              : 'Pending review';
+            const pillClass = existing.status === 'posted' ? 'posted' : existing.status === 'failed' ? 'failed' : existing.approvalStatus;
+            return `<span class="platform-queue-existing">${p.label}: <span class="pill ${pillClass}">${label}</span></span>`;
+          }
+          const checked = p.defaultFor.includes(item._type) ? 'checked' : '';
+          return `<label class="platform-check"><input type="checkbox" class="queue-platform-check" value="${p.value}" ${checked} /> ${p.label}</label>`;
+        }).join('')}
+      </div>
+      <button class="btn btn-approve queue-platforms-btn">Queue selected platforms</button>
+    </div>
     <div class="edit-actions">
       <button class="btn btn-approve edit-save">Save changes</button>
       <button class="btn btn-reset edit-claude">Draft script in Claude</button>
@@ -359,17 +388,41 @@ function buildEditPanel(item) {
     </div>
   `;
 
-  panel.querySelector('.edit-claude').addEventListener('click', async (e) => {
+  const queueBtn = panel.querySelector('.queue-platforms-btn');
+  if (queueBtn) {
+    queueBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const checked = [...panel.querySelectorAll('.queue-platform-check:checked')].map((c) => c.value);
+      if (checked.length === 0) return showPlanBanner('Tick at least one platform first.', 'is-error');
+
+      queueBtn.disabled = true;
+      queueBtn.textContent = 'Queuing...';
+      try {
+        const res = await fetch('/api/queue-platforms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ docId: item._id, platforms: checked }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Server responded ${res.status}`);
+        showPlanBanner(
+          data.added > 0
+            ? `Queued ${data.added} platform(s). Approve them in Posting Review.`
+            : (data.message || 'Nothing new to queue.'),
+          'is-success'
+        );
+        await loadPlan();
+      } catch (err) {
+        showPlanBanner(`Couldn't queue platforms: ${err.message}`, 'is-error');
+        queueBtn.disabled = false;
+        queueBtn.textContent = 'Queue selected platforms';
+      }
+    });
+  }
+
+  panel.querySelector('.edit-claude').addEventListener('click', (e) => {
     e.stopPropagation();
-    const prompt = buildClaudePrompt(item);
-    try {
-      await navigator.clipboard.writeText(prompt);
-      showPlanBanner('Prompt copied — paste it into the new Claude tab.', 'is-success');
-    } catch {
-      showPlanBanner('Could not copy automatically — opening Claude, paste the prompt from the console if needed.', 'is-error');
-      console.log(prompt);
-    }
-    window.open('https://claude.ai/new', '_blank', 'noopener');
+    openClaudePromptModal(buildClaudePrompt(item));
   });
 
   panel.querySelector('.edit-save').addEventListener('click', async (e) => {
@@ -443,6 +496,54 @@ function buildClaudePrompt(item) {
     `3. A short post caption (2-3 sentences) suitable for the video's description.`,
     `4. 5-8 relevant hashtags.`,
   ].filter(Boolean).join('\n');
+}
+
+function openClaudePromptModal(promptText) {
+  // Remove any existing modal first.
+  document.getElementById('claude-modal-overlay')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'claude-modal-overlay';
+  overlay.className = 'modal-overlay';
+
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <p class="modal-title">Script prompt for Claude</p>
+      <p class="modal-sub">Copy this, then open Claude and paste it in. Claude no longer supports auto-filling a chat via link, so this manual step is unavoidable.</p>
+      <textarea id="claude-prompt-text" class="modal-textarea" readonly></textarea>
+      <div class="modal-actions">
+        <button id="modal-copy" class="btn btn-approve">Copy prompt</button>
+        <a id="modal-open" href="https://claude.ai/new" target="_blank" rel="noopener" class="btn btn-reset">Open Claude.ai</a>
+        <button id="modal-close" class="btn btn-reset">Close</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const textarea = document.getElementById('claude-prompt-text');
+  textarea.value = promptText;
+
+  // Auto-select the text so a manual Ctrl/Cmd+C also works even if the
+  // Copy button's clipboard call is blocked by the browser.
+  textarea.focus();
+  textarea.select();
+
+  document.getElementById('modal-copy').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(promptText);
+      showPlanBanner('Copied to clipboard.', 'is-success');
+    } catch {
+      textarea.focus();
+      textarea.select();
+      showPlanBanner('Auto-copy was blocked — the text is selected, press Ctrl/Cmd+C.', 'is-error');
+    }
+  });
+
+  document.getElementById('modal-close').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
 }
 
 function renderBulkBar() {

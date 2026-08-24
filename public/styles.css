@@ -424,11 +424,17 @@ body {
 .item-type.type-shortClip { background: #E4F3E9; color: var(--green-light); }
 
 .item-label {
-  flex: 1;
+  flex: 0 1 70%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: default;
+}
+
+.item-row .spacer {
+  flex: 1 1 auto;
+  min-width: 8px;
 }
 
 .cta-flag, .mm-flag {
@@ -805,3 +811,108 @@ body {
 .status-chip.status-idea { background: #EDEBFE; color: #6B4FBB; }
 .chip.status-idea { background: #EDEBFE; color: #6B4FBB; }
 .summary-num.status-idea { color: #6B4FBB; }
+
+/* ---------- Claude prompt modal ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,26,46,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-title {
+  font-weight: 800;
+  font-size: 17px;
+  margin: 0;
+}
+
+.modal-sub {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.modal-textarea {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 260px;
+  flex: 1;
+  resize: vertical;
+  background: var(--bg);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modal-actions .btn-reset {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ---------- Platform queue (in edit panel) ---------- */
+
+.platform-queue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.platform-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+.platform-check input {
+  accent-color: var(--purple-deep);
+}
+
+.platform-queue-existing {
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- Scheduling collision warning ---------- */
+
+.collision-note {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--amber);
+  flex-basis: 100%;
+}

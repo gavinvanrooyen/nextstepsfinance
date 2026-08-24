@@ -29,7 +29,8 @@ export default async function handler() {
       caption,
       hashtags,
       youtubeUrl,
-      "cta": cta->{_id, name}
+      "cta": cta->{_id, name},
+      platformPosts[]{_key, platform, approvalStatus, status}
     }
   }`;
 

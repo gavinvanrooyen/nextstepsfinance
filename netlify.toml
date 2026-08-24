@@ -3,9 +3,16 @@
   functions = "netlify/functions"
 
 [functions."scheduled-post"]
-  # Runs once a day. Cron is UTC. 07:00 UTC = 07:00/08:00 UK time depending on DST.
-  # Change this once we agree on the exact time you want the daily run to fire.
-  schedule = "0 7 * * *"
+  # Runs once an hour (cron is UTC), not once a day.
+  #
+  # Why hourly: the job only publishes items whose scheduledAt has already
+  # passed. With a once-a-day cron, everything due since the last run fires
+  # together in a single batch, regardless of how carefully the approval
+  # dashboard spaced out individual scheduledAt times. Running hourly means
+  # each post actually goes out close to the time it was scheduled for, so
+  # the dashboard's slot-spacing (3 slots/day, 90 min apart) has a real
+  # effect instead of being flattened into one daily dump.
+  schedule = "0 * * * *"
 
 # Clean URLs for the dashboard's fetch calls: /api/list-content instead of
 # /.netlify/functions/list-content

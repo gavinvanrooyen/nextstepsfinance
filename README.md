@@ -85,6 +85,20 @@ You can invoke the scheduled function manually from the Netlify dashboard
 (Functions tab > scheduled-post > "Trigger function") once it's deployed,
 rather than waiting for the daily cron — useful for your first real test run.
 
+## Scheduling behaviour
+
+- The dashboard suggests posting times from a fixed set of daily slots
+  (09:00, 13:00, 17:00 local time) and automatically skips any slot within
+  90 minutes of another already-scheduled post on the same platform — so
+  approving several items back-to-back spaces them out instead of stacking
+  them at the same moment.
+- The scheduled function runs **hourly**, not daily, so posts actually go
+  out close to their assigned slot rather than getting batched together
+  whenever the job next happens to run.
+- You can still override the suggested time manually; a warning appears if
+  your chosen time lands within 90 minutes of another scheduled post on the
+  same platform, but it won't block you from approving anyway.
+
 ## What's not built yet
 
 - The approval dashboard itself (separate piece — next up).

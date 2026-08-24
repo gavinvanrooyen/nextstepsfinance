@@ -3,6 +3,14 @@ const state = {
   filter: 'pending',
 };
 
+// Daily posting slots and the minimum gap enforced between any two posts on
+// the same platform, so approving several items in a row doesn't clump them
+// all into one moment. The scheduled function itself now also runs hourly
+// (see netlify.toml) rather than once a day, so posts actually go out close
+// to whichever slot they're assigned rather than in one big daily batch.
+const POSTING_SLOTS = ['09:00', '13:00', '17:00'];
+const MIN_GAP_MINUTES = 90;
+
 const cardList = document.getElementById('card-list');
 const emptyState = document.getElementById('empty-state');
 const banner = document.getElementById('status-banner');
@@ -131,8 +139,16 @@ function renderPlatformRow(doc, post) {
     const dtInput = document.createElement('input');
     dtInput.type = 'datetime-local';
     dtInput.className = 'datetime-input';
-    dtInput.value = defaultScheduleValue();
+    dtInput.value = toDatetimeLocalValue(suggestNextSlot(post.platform, doc._id, post._key));
     row.appendChild(dtInput);
+
+    const collisionNote = document.createElement('span');
+    collisionNote.className = 'collision-note';
+    collisionNote.hidden = true;
+    updateCollisionNote(collisionNote, dtInput.value, post.platform, doc._id, post._key);
+    dtInput.addEventListener('change', () => {
+      updateCollisionNote(collisionNote, dtInput.value, post.platform, doc._id, post._key);
+    });
 
     const approveBtn = makeButton('Approve', 'btn-approve', async () => {
       await updatePost(doc._id, post._key, 'approve', new Date(dtInput.value).toISOString());
@@ -142,6 +158,7 @@ function renderPlatformRow(doc, post) {
     });
     row.appendChild(approveBtn);
     row.appendChild(rejectBtn);
+    row.appendChild(collisionNote);
   }
 
   if (state.filter === 'approved') {
@@ -234,8 +251,69 @@ function defaultScheduleValue() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   d.setHours(9, 0, 0, 0);
+  return toDatetimeLocalValue(d);
+}
+
+function toDatetimeLocalValue(date) {
   const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+// Collects every currently-approved-and-scheduled (not yet posted) time for
+// a given platform, across all documents, so slot suggestions and collision
+// checks are based on the real current queue rather than just this one item.
+function getScheduledDatesForPlatform(platform, excludeDocId, excludeKey) {
+  const dates = [];
+  for (const doc of state.items) {
+    for (const post of doc.platformPosts) {
+      if (post.platform !== platform || post.status !== 'scheduled' || !post.scheduledAt) continue;
+      if (doc._id === excludeDocId && post._key === excludeKey) continue;
+      dates.push(new Date(post.scheduledAt));
+    }
+  }
+  return dates;
+}
+
+// Walks forward day by day, trying each daily slot in order, and returns the
+// first one that isn't within MIN_GAP_MINUTES of an existing scheduled post
+// on the same platform. This is what spaces out approvals automatically
+// instead of defaulting everything to the same time.
+function suggestNextSlot(platform, excludeDocId, excludeKey) {
+  const existing = getScheduledDatesForPlatform(platform, excludeDocId, excludeKey);
+
+  const day = new Date();
+  day.setDate(day.getDate() + 1);
+  day.setHours(0, 0, 0, 0);
+
+  for (let dayOffset = 0; dayOffset < 60; dayOffset++) {
+    for (const slot of POSTING_SLOTS) {
+      const [h, m] = slot.split(':').map(Number);
+      const candidate = new Date(day);
+      candidate.setHours(h, m, 0, 0);
+
+      const tooClose = existing.some((d) => Math.abs(d - candidate) < MIN_GAP_MINUTES * 60 * 1000);
+      if (!tooClose) return candidate;
+    }
+    day.setDate(day.getDate() + 1);
+  }
+
+  // Fallback if 60 days are somehow all full - shouldn't happen in practice.
+  return new Date(Date.now() + 24 * 60 * 60 * 1000);
+}
+
+function updateCollisionNote(el, datetimeLocalValue, platform, excludeDocId, excludeKey) {
+  if (!datetimeLocalValue) { el.hidden = true; return; }
+
+  const candidate = new Date(datetimeLocalValue);
+  const existing = getScheduledDatesForPlatform(platform, excludeDocId, excludeKey);
+  const collision = existing.find((d) => Math.abs(d - candidate) < MIN_GAP_MINUTES * 60 * 1000);
+
+  if (collision) {
+    el.hidden = false;
+    el.textContent = `⚠ Within ${MIN_GAP_MINUTES} min of another ${platformLabel(platform)} post at ${collision.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}`;
+  } else {
+    el.hidden = true;
+  }
 }
 
 function escapeHtml(str) {
