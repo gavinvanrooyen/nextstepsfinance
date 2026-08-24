@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Next Steps Finance — Posting Review</title>
+<title>Next Steps Finance — Content Ops</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css" />
@@ -14,9 +14,20 @@
   <div class="topbar-inner">
     <div class="brand">
       <span class="brand-mark">NSF</span>
-      <span class="brand-name">Posting Review</span>
+      <span class="brand-name">Content Ops</span>
     </div>
-    <div class="tabs" role="tablist">
+
+    <div class="section-tabs" role="tablist">
+      <button class="section-tab is-active" data-section="plan">Content Plan</button>
+      <button class="section-tab" data-section="review">Posting Review</button>
+    </div>
+
+    <div class="tabs" id="plan-tabs" role="tablist">
+      <button class="tab is-active" data-planview="list">List</button>
+      <button class="tab" data-planview="timeline">Timeline</button>
+    </div>
+
+    <div class="tabs" id="review-tabs" role="tablist" hidden>
       <button class="tab is-active" data-filter="pending" role="tab">Needs review</button>
       <button class="tab" data-filter="approved" role="tab">Approved &amp; scheduled</button>
       <button class="tab" data-filter="posted" role="tab">Posted</button>
@@ -27,13 +38,23 @@
 
 <main class="main">
   <div id="status-banner" class="status-banner" hidden></div>
-  <div id="empty-state" class="empty-state" hidden>
-    <p class="empty-title">Nothing here yet</p>
-    <p class="empty-sub">Content shows up once a video or short has at least one platform queued for posting.</p>
-  </div>
-  <div id="card-list" class="card-list"></div>
+
+  <section id="section-plan">
+    <div id="plan-summary" class="plan-summary"></div>
+    <div id="plan-list" class="plan-list"></div>
+    <div id="plan-timeline" class="plan-timeline" hidden></div>
+  </section>
+
+  <section id="section-review" hidden>
+    <div id="empty-state" class="empty-state" hidden>
+      <p class="empty-title">Nothing here yet</p>
+      <p class="empty-sub">Content shows up once a video or short has at least one platform queued for posting.</p>
+    </div>
+    <div id="card-list" class="card-list"></div>
+  </section>
 </main>
 
+<script src="/plan.js"></script>
 <script src="/dashboard.js"></script>
 </body>
 </html>

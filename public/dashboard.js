@@ -244,4 +244,6 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-loadContent();
+// Loaded lazily by plan.js's section-tab handler when "Posting Review" is
+// first opened, rather than on every page load, since Content Plan is now
+// the default landing view.
