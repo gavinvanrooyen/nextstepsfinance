@@ -11,8 +11,9 @@
  *
  * USAGE:
  *   1. In Google Cloud Console, under your OAuth Client (Web application),
- *      add this exact Authorized redirect URI:
- *        http://localhost:3000/oauth2callback
+ *      add an Authorized redirect URI matching http://localhost:<PORT>/oauth2callback
+ *      (see the PORT constant below), and set that same value as the
+ *      YOUTUBE_REDIRECT_URI env var.
  *   2. Create a real .env file (copy .env.example) and fill in
  *      YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET from that same OAuth client.
  *   3. Run: npm install && npm run authorize:youtube
@@ -30,15 +31,16 @@ import { google } from 'googleapis';
 import open from 'open';
 
 const PORT = 3000;
-const REDIRECT_URI = process.env.YOUTUBE_REDIRECT_URI || `http://localhost:${PORT}/oauth2callback`;
 
-const requiredEnv = ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET'];
+const requiredEnv = ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET', 'YOUTUBE_REDIRECT_URI'];
 for (const key of requiredEnv) {
   if (!process.env[key]) {
     console.error(`Missing ${key} in your .env file. Copy .env.example to .env and fill it in first.`);
     process.exit(1);
   }
 }
+
+const REDIRECT_URI = process.env.YOUTUBE_REDIRECT_URI;
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.YOUTUBE_CLIENT_ID,
