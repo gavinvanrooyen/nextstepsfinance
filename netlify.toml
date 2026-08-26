@@ -2,6 +2,9 @@
   publish = "public"
   functions = "netlify/functions"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_PATHS = "node_modules"
+
 [functions."scheduled-post"]
   # Runs once an hour (cron is UTC), not once a day.
   #
